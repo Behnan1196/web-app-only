@@ -7,14 +7,16 @@ const initializeFirebaseAdmin = () => {
     const serviceAccount = process.env.GOOGLE_SERVICES_JSON;
     
     if (!serviceAccount) {
-      throw new Error('Missing GOOGLE_SERVICES_JSON environment variable');
+      console.warn('Missing GOOGLE_SERVICES_JSON environment variable - Firebase Admin SDK not initialized');
+      return null;
     }
 
     let serviceAccountKey;
     try {
       serviceAccountKey = JSON.parse(serviceAccount);
     } catch (error) {
-      throw new Error('Invalid GOOGLE_SERVICES_JSON format. Must be valid JSON.');
+      console.warn('Invalid GOOGLE_SERVICES_JSON format - Firebase Admin SDK not initialized');
+      return null;
     }
 
     return initializeApp({
@@ -27,4 +29,4 @@ const initializeFirebaseAdmin = () => {
 };
 
 export const admin = initializeFirebaseAdmin();
-export const messaging = getMessaging(admin);
+export const messaging = admin ? getMessaging(admin) : null;

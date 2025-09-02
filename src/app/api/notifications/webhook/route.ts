@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase';
-import { admin } from '@/lib/firebase-admin';
+import { messaging } from '@/lib/firebase-admin';
 
 interface StreamWebhookPayload {
   type: string;
@@ -113,13 +113,17 @@ export async function POST(request: NextRequest) {
               }
             };
 
-            let status = 'sent';
+            let status: 'sent' | 'delivered' | 'failed' | 'suppressed' = 'sent';
             let errorMessage = '';
 
             if (token.platform === 'web' && token.token_type === 'fcm') {
               // Send FCM notification
-              try {
-                await admin.messaging().send({
+              if (!messaging) {
+                status = 'failed';
+                errorMessage = 'Firebase Admin SDK not initialized';
+              } else {
+                try {
+                  await messaging.send({
                   token: token.token,
                   notification: notification,
                   webpush: {
@@ -134,9 +138,10 @@ export async function POST(request: NextRequest) {
                     }
                   }
                 });
-              } catch (error) {
-                status = 'failed';
-                errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                              } catch (error) {
+                  status = 'failed';
+                  errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                }
               }
             } else if (token.platform === 'ios' || token.platform === 'android') {
               // For mobile, we'll use Expo push notifications

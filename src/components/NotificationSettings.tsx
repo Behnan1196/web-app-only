@@ -119,7 +119,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ clas
                   </p>
                 </div>
                 <div className="text-xs text-gray-500">
-                  {new Date(token.created_at || '').toLocaleDateString()}
+                  {(token as any).created_at ? new Date((token as any).created_at).toLocaleDateString() : 'Unknown'}
                 </div>
               </div>
             ))}

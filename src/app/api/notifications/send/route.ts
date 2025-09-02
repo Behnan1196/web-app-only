@@ -7,7 +7,7 @@ import {
   buildAssignmentNotification,
   buildSystemNotification,
   shouldSendNotification 
-} from '../../../../shared/utils/notificationService';
+} from '@/lib/notificationService';
 
 interface SendNotificationRequest {
   userId: string;
@@ -107,13 +107,17 @@ export async function POST(request: NextRequest) {
     const results = await Promise.allSettled(
       tokens.map(async (token) => {
         try {
-          let status = 'sent';
+          let status: 'sent' | 'delivered' | 'failed' | 'suppressed' = 'sent';
           let errorMessage = '';
 
           if (token.platform === 'web' && token.token_type === 'fcm') {
             // Send FCM notification
-            try {
-              await messaging.send({
+            if (!messaging) {
+              status = 'failed';
+              errorMessage = 'Firebase Admin SDK not initialized';
+            } else {
+              try {
+                await messaging.send({
                 token: token.token,
                 notification: {
                   title: notificationPayload.title,
@@ -127,9 +131,10 @@ export async function POST(request: NextRequest) {
                   },
                 },
               });
-            } catch (error) {
-              status = 'failed';
-              errorMessage = error instanceof Error ? error.message : 'Unknown error';
+                          } catch (error) {
+                status = 'failed';
+                errorMessage = error instanceof Error ? error.message : 'Unknown error';
+              }
             }
           } else if (token.platform === 'ios' || token.platform === 'android') {
             // For mobile, we'll use Expo push notifications
