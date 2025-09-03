@@ -22,6 +22,17 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ clas
 
   const [isLoading, setIsLoading] = useState(false);
 
+  // Don't render if not initialized yet
+  if (!isInitialized) {
+    return (
+      <div className={`p-4 ${className}`}>
+        <div className="text-center text-gray-500">
+          Initializing notifications...
+        </div>
+      </div>
+    );
+  }
+
   const handleRequestPermission = async () => {
     setIsLoading(true);
     try {

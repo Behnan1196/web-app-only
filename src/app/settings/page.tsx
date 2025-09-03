@@ -19,7 +19,7 @@ export default function SettingsPage() {
   }, [user, loading, router]);
 
   // Show loading state while checking authentication
-  if (loading) {
+  if (loading || !user) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -28,11 +28,6 @@ export default function SettingsPage() {
         </div>
       </div>
     );
-  }
-
-  // Don't render anything if user is not logged in (will redirect in useEffect)
-  if (!user) {
-    return null;
   }
 
   return (
