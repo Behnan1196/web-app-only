@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useChat } from '@/contexts/ChatContext';
+import { useNotifications } from '@/hooks/useNotifications';
 import { User } from '@/types';
 
 function ChatPageContent() {
@@ -18,6 +19,7 @@ function ChatPageContent() {
     connectToChat, 
     sendMessage 
   } = useChat();
+  const { setChatActivity } = useNotifications();
   
   const [messageText, setMessageText] = useState('');
   const [partner, setPartner] = useState<User | null>(null);
@@ -52,6 +54,17 @@ function ChatPageContent() {
       connectToChat(user, partner);
     }
   }, [user, partner, isConnected, connectToChat]);
+
+  // Track chat activity for notifications
+  useEffect(() => {
+    // Set user as in chat when component mounts
+    setChatActivity(true);
+    
+    // Set user as not in chat when component unmounts
+    return () => {
+      setChatActivity(false);
+    };
+  }, [setChatActivity]);
 
   // Handle sending message
   const handleSendMessage = async () => {

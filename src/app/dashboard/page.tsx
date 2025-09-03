@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useNotifications } from '@/hooks/useNotifications';
 import { getAssignedPartner } from '@/lib/assignments';
 import { User } from '@/types';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { user, signOut, loading: authLoading } = useAuth();
+  const { setChatActivity } = useNotifications();
   const [assignedPartner, setAssignedPartner] = useState<User | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -21,6 +23,12 @@ export default function DashboardPage() {
       router.push('/');
     }
   }, [user, authLoading, router]);
+
+  // Track chat activity for notifications
+  useEffect(() => {
+    // Set user as not in chat when on dashboard
+    setChatActivity(false);
+  }, [setChatActivity]);
 
   const loadAssignedPartner = async () => {
     try {
