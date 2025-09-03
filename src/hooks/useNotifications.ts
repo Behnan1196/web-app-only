@@ -34,6 +34,8 @@ export const useNotifications = (): UseNotificationsReturn => {
       return;
     }
 
+    console.log('useNotifications - starting initialization for user:', user.id);
+
     try {
       // Check current permission status
       if ('Notification' in window) {
@@ -106,8 +108,10 @@ export const useNotifications = (): UseNotificationsReturn => {
   // Initialize when user changes
   useEffect(() => {
     if (user?.id && !isInitialized) {
+      console.log('useNotifications - initializing for user:', user.id);
       initialize();
     } else if (!user?.id && isInitialized) {
+      console.log('useNotifications - cleaning up, no user');
       cleanup();
     }
   }, [user?.id, isInitialized, initialize, cleanup]);
