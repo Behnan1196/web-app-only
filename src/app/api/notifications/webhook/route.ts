@@ -124,21 +124,28 @@ export async function POST(request: NextRequest) {
               } else {
                 try {
                   await messaging.send({
-                  token: token.token,
-                  notification: notification,
-                  webpush: {
+                    token: token.token,
                     notification: {
-                      ...notification,
-                      actions: [
-                        {
-                          action: 'open',
-                          title: 'Open Chat'
-                        }
-                      ]
+                      title: notification.title,
+                      body: notification.body
+                    },
+                    webpush: {
+                      notification: {
+                        title: notification.title,
+                        body: notification.body,
+                        icon: notification.icon,
+                        badge: notification.badge,
+                        actions: [
+                          {
+                            action: 'open',
+                            title: 'Open Chat'
+                          }
+                        ]
+                      },
+                      data: notification.data
                     }
-                  }
-                });
-                              } catch (error) {
+                  });
+                } catch (error) {
                   status = 'failed';
                   errorMessage = error instanceof Error ? error.message : 'Unknown error';
                 }
