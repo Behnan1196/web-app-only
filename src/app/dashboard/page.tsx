@@ -13,23 +13,33 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
+    if (user && !assignedPartner && !loading) {
+      // Only load if we don't have a partner and we're not already loading
       loadAssignedPartner();
-    } else if (!authLoading) {
+    } else if (!user && !authLoading) {
       // User is logged out and auth is not loading, redirect to login
       router.push('/');
     }
-  }, [user, authLoading, router]);
+  }, [user, authLoading, router, assignedPartner, loading]);
 
   const loadAssignedPartner = async () => {
     try {
       console.log('Loading assigned partner for user:', user?.id, user?.role);
       setLoading(true);
-      const partner = await getAssignedPartner(user!.id, user!.role);
+      
+      // Add timeout to prevent hanging
+      const timeoutPromise = new Promise<null>((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout loading assigned partner')), 10000);
+      });
+      
+      const partnerPromise = getAssignedPartner(user!.id, user!.role);
+      const partner = await Promise.race([partnerPromise, timeoutPromise]);
+      
       console.log('Assigned partner result:', partner);
       setAssignedPartner(partner);
     } catch (error) {
       console.error('Error loading assigned partner:', error);
+      setAssignedPartner(null);
     } finally {
       setLoading(false);
     }
@@ -48,6 +58,12 @@ export default function DashboardPage() {
     if (assignedPartner) {
       router.push(`/chat?partner=${encodeURIComponent(JSON.stringify(assignedPartner))}`);
     }
+  };
+
+  const handleRefresh = () => {
+    setAssignedPartner(null);
+    setLoading(true);
+    loadAssignedPartner();
   };
 
   const getPartnerDisplayText = () => {
@@ -96,23 +112,39 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Chat Card */}
           <div 
-            className={`bg-white rounded-lg shadow-lg p-6 cursor-pointer transition-all ${
+            className={`bg-white rounded-lg shadow-lg p-6 transition-all ${
               !assignedPartner 
-                ? 'opacity-50 cursor-not-allowed' 
+                ? 'opacity-50' 
                 : 'hover:shadow-xl hover:scale-105'
             }`}
-            onClick={assignedPartner ? handleChatPress : undefined}
           >
-            <div className="flex items-center mb-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
-                <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <div className="flex items-center justify-between mb-4">
+              <div 
+                className={`flex items-center flex-1 ${
+                  assignedPartner ? 'cursor-pointer' : 'cursor-not-allowed'
+                }`}
+                onClick={assignedPartner ? handleChatPress : undefined}
+              >
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mr-4">
+                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-semibold text-gray-900">Chat</h2>
+                  <p className="text-gray-600">{getPartnerDisplayText()}</p>
+                </div>
+              </div>
+              <button
+                onClick={handleRefresh}
+                disabled={loading}
+                className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Refresh"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-              </div>
-              <div>
-                <h2 className="text-xl font-semibold text-gray-900">Chat</h2>
-                <p className="text-gray-600">{getPartnerDisplayText()}</p>
-              </div>
+              </button>
             </div>
             <p className="text-sm text-gray-500">{getPartnerSubtext()}</p>
           </div>
