@@ -83,15 +83,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      setLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (error) throw error;
+
+      // Wait for user profile to be fetched
+      if (data.user) {
+        await fetchUserProfile(data.user.id);
+      }
     } catch (error) {
       console.error('Error signing in:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -130,11 +138,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Clear user state immediately
+      setUser(null);
+      setSession(null);
     } catch (error) {
       console.error('Error signing out:', error);
       throw error;
+    } finally {
+      setLoading(false);
     }
   };
 

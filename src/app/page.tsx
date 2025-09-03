@@ -6,14 +6,13 @@ import { useAuth } from '@/contexts/AuthContext';
 
 export default function HomePage() {
   const router = useRouter();
-  const { user, signIn, signUp } = useAuth();
+  const { user, signIn, signUp, loading } = useAuth();
 
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState<'student' | 'coach'>('student');
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -24,7 +23,6 @@ export default function HomePage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError('');
 
     try {
@@ -36,8 +34,6 @@ export default function HomePage() {
       // Navigation will happen in useEffect when user state updates
     } catch (error) {
       setError(error instanceof Error ? error.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -152,14 +148,14 @@ export default function HomePage() {
 
             <button
               type="submit"
-              disabled={isLoading}
+              disabled={loading}
               className={`w-full py-3 px-4 rounded-lg font-medium text-white transition-all ${
-                isLoading
+                loading
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 hover:shadow-lg transform hover:scale-105'
               }`}
             >
-              {isLoading ? (
+              {loading ? (
                 <div className="flex items-center justify-center">
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
                   Loading...

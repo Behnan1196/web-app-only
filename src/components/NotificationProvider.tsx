@@ -23,3 +23,4 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   return <>{children}</>;
 };
+

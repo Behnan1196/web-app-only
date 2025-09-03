@@ -196,3 +196,4 @@ export const buildSystemNotification = (
   badge: '/icon.png',
   sound: 'default',
 });
+

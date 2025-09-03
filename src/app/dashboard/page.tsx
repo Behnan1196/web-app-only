@@ -8,15 +8,18 @@ import { User } from '@/types';
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, signOut, loading: authLoading } = useAuth();
   const [assignedPartner, setAssignedPartner] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
       loadAssignedPartner();
+    } else if (!authLoading) {
+      // User is logged out and auth is not loading, redirect to login
+      router.push('/');
     }
-  }, [user]);
+  }, [user, authLoading, router]);
 
   const loadAssignedPartner = async () => {
     try {
@@ -35,7 +38,7 @@ export default function DashboardPage() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.push('/');
+      // Navigation will happen automatically when user becomes null
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -77,9 +80,14 @@ export default function DashboardPage() {
             </div>
             <button
               onClick={handleSignOut}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              disabled={authLoading}
+              className={`px-4 py-2 rounded-lg transition-colors ${
+                authLoading
+                  ? 'bg-gray-400 cursor-not-allowed text-white'
+                  : 'bg-red-600 text-white hover:bg-red-700'
+              }`}
             >
-              Sign Out
+              {authLoading ? 'Signing Out...' : 'Sign Out'}
             </button>
           </div>
         </div>
