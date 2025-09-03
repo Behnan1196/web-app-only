@@ -10,7 +10,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, signOut, loading: authLoading } = useAuth();
   const [assignedPartner, setAssignedPartner] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (user && !assignedPartner && !loading) {
@@ -20,7 +20,7 @@ export default function DashboardPage() {
       // User is logged out and auth is not loading, redirect to login
       router.push('/');
     }
-  }, [user, authLoading, router, assignedPartner, loading]);
+  }, [user, authLoading, router]);
 
   const loadAssignedPartner = async () => {
     try {
