@@ -151,9 +151,38 @@ export async function POST(request: NextRequest) {
                 }
               }
             } else if (token.platform === 'ios' || token.platform === 'android') {
-              // For mobile, we'll use Expo push notifications
-              // This will be handled by the mobile app's notification service
-              status = 'sent'; // Placeholder - actual implementation in mobile service
+              // Send Expo push notification
+              try {
+                const expoPushMessage = {
+                  to: token.token,
+                  title: notification.title,
+                  body: notification.body,
+                  data: notification.data,
+                  sound: 'default',
+                  badge: 1,
+                };
+
+                const response = await fetch('https://exp.host/--/api/v2/push/send', {
+                  method: 'POST',
+                  headers: {
+                    'Accept': 'application/json',
+                    'Accept-encoding': 'gzip, deflate',
+                    'Content-Type': 'application/json',
+                  },
+                  body: JSON.stringify(expoPushMessage),
+                });
+
+                if (!response.ok) {
+                  const errorData = await response.text();
+                  status = 'failed';
+                  errorMessage = `Expo push failed: ${response.status} ${errorData}`;
+                } else {
+                  status = 'sent';
+                }
+              } catch (error) {
+                status = 'failed';
+                errorMessage = error instanceof Error ? error.message : 'Unknown error';
+              }
             }
 
             // Log the notification
