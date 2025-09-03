@@ -18,6 +18,8 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({ clas
     refreshLogs,
   } = useNotifications();
 
+  console.log('NotificationSettings - isInitialized:', isInitialized, 'permission:', permission);
+
   const [isLoading, setIsLoading] = useState(false);
 
   const handleRequestPermission = async () => {
