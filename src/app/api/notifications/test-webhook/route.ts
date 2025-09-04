@@ -128,37 +128,44 @@ export async function POST(request: NextRequest) {
             }
           }
         } else if (token.platform === 'ios' || token.platform === 'android') {
-          // Send Expo push notification
-          try {
-            const expoPushMessage = {
-              to: token.token,
-              title: notification.title,
-              body: notification.body,
-              data: notification.data,
-              sound: 'default',
-              badge: 1,
-            };
+          // Check if it's a mock token (development build)
+          if (token.token_type === 'mock' || token.token.startsWith('mock-')) {
+            console.log('📱 Mock token detected - skipping push notification (will use local notification)');
+            status = 'mock';
+            errorMessage = 'Mock token - local notification will be used';
+          } else {
+            // Send Expo push notification for real tokens
+            try {
+              const expoPushMessage = {
+                to: token.token,
+                title: notification.title,
+                body: notification.body,
+                data: notification.data,
+                sound: 'default',
+                badge: 1,
+              };
 
-            const response = await fetch('https://exp.host/--/api/v2/push/send', {
-              method: 'POST',
-              headers: {
-                'Accept': 'application/json',
-                'Accept-encoding': 'gzip, deflate',
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify(expoPushMessage),
-            });
+              const response = await fetch('https://exp.host/--/api/v2/push/send', {
+                method: 'POST',
+                headers: {
+                  'Accept': 'application/json',
+                  'Accept-encoding': 'gzip, deflate',
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(expoPushMessage),
+              });
 
-            if (!response.ok) {
-              const errorData = await response.text();
+              if (!response.ok) {
+                const errorData = await response.text();
+                status = 'failed';
+                errorMessage = `Expo push failed: ${response.status} ${errorData}`;
+              } else {
+                status = 'sent';
+              }
+            } catch (error) {
               status = 'failed';
-              errorMessage = `Expo push failed: ${response.status} ${errorData}`;
-            } else {
-              status = 'sent';
+              errorMessage = error instanceof Error ? error.message : 'Unknown error';
             }
-          } catch (error) {
-            status = 'failed';
-            errorMessage = error instanceof Error ? error.message : 'Unknown error';
           }
         }
 
