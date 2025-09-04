@@ -41,7 +41,8 @@ export async function POST(request: NextRequest) {
     
     // Note: Stream.io webhook signature verification can be added later if needed
     // For now, we'll process all webhook requests
-    console.log('Stream.io webhook received:', payload.type);
+    console.log('🔔 Stream.io webhook received:', payload.type);
+    console.log('📱 Webhook payload:', JSON.stringify(payload, null, 2));
 
     // Only process message.new events
     if (payload.type !== 'message.new') {
