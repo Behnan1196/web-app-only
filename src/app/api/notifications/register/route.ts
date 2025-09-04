@@ -5,7 +5,10 @@ export async function POST(request: NextRequest) {
   try {
     const { userId, token, platform, tokenType } = await request.json();
 
+    console.log('📱 Token registration request:', { userId, token, platform, tokenType });
+
     if (!userId || !token || !platform || !tokenType) {
+      console.error('❌ Missing required fields:', { userId, token, platform, tokenType });
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
@@ -35,9 +38,9 @@ export async function POST(request: NextRequest) {
         .eq('id', existingToken.id);
 
       if (updateError) {
-        console.error('Error updating token:', updateError);
+        console.error('❌ Error updating token:', updateError);
         return NextResponse.json(
-          { error: 'Failed to update token' },
+          { error: 'Failed to update token', details: updateError.message },
           { status: 500 }
         );
       }
@@ -57,9 +60,9 @@ export async function POST(request: NextRequest) {
         });
 
       if (insertError) {
-        console.error('Error inserting token:', insertError);
+        console.error('❌ Error inserting token:', insertError);
         return NextResponse.json(
-          { error: 'Failed to insert token' },
+          { error: 'Failed to insert token', details: insertError.message },
           { status: 500 }
         );
       }
