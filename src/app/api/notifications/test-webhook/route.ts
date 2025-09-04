@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createAdminClient } from '@/lib/supabase';
+import { messaging } from '@/lib/firebase-admin';
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,34 +48,156 @@ export async function POST(request: NextRequest) {
       ],
     };
 
-    // Call the webhook endpoint internally
-    const webhookUrl = `${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/notifications/webhook`;
+    // Process the webhook directly instead of making HTTP call
+    console.log('🔔 Processing test webhook directly...');
     
-    const response = await fetch(webhookUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(testPayload),
-    });
+    // Get notification tokens for the channel members
+    const supabase = createAdminClient();
+    const memberIds = testPayload.members.map(member => member.user_id);
+    
+    const { data: tokens, error: tokensError } = await supabase
+      .from('notification_tokens')
+      .select('*')
+      .in('user_id', memberIds)
+      .eq('is_active', true);
 
-    if (response.ok) {
-      console.log('✅ Test webhook sent successfully');
-      return NextResponse.json({ 
-        success: true, 
-        message: 'Test webhook sent successfully',
-        payload: testPayload
-      });
-    } else {
-      const errorText = await response.text();
-      console.error('❌ Test webhook failed:', response.status, errorText);
+    if (tokensError) {
+      console.error('❌ Error fetching tokens:', tokensError);
       return NextResponse.json({ 
         success: false, 
-        error: 'Test webhook failed',
-        status: response.status,
-        details: errorText
+        error: 'Failed to fetch notification tokens',
+        details: tokensError.message
       }, { status: 500 });
     }
+
+    console.log('📱 Found tokens:', tokens?.length || 0);
+
+    // Send notifications to each token
+    const notificationResults = [];
+    for (const token of tokens || []) {
+      try {
+        const notification = {
+          title: `New message from ${testPayload.message.user.name}`,
+          body: testPayload.message.text,
+          icon: '/favicon.ico',
+          badge: '/favicon.ico',
+          data: {
+            channelId: testPayload.channel.id,
+            messageId: testPayload.message.id,
+            senderId: testPayload.message.user.id,
+            type: 'chat_message'
+          }
+        };
+
+        let status = 'failed';
+        let errorMessage = '';
+
+        if (token.platform === 'web' && token.token_type === 'fcm') {
+          // Send FCM notification
+          if (!messaging) {
+            status = 'failed';
+            errorMessage = 'Firebase Admin SDK not initialized';
+          } else {
+            try {
+              await messaging.send({
+                token: token.token,
+                notification: {
+                  title: notification.title,
+                  body: notification.body
+                },
+                webpush: {
+                  notification: {
+                    title: notification.title,
+                    body: notification.body,
+                    icon: notification.icon,
+                    badge: notification.badge,
+                    actions: [
+                      {
+                        action: 'open',
+                        title: 'Open Chat'
+                      }
+                    ]
+                  },
+                  data: notification.data
+                }
+              });
+              status = 'sent';
+            } catch (error) {
+              status = 'failed';
+              errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            }
+          }
+        } else if (token.platform === 'ios' || token.platform === 'android') {
+          // Send Expo push notification
+          try {
+            const expoPushMessage = {
+              to: token.token,
+              title: notification.title,
+              body: notification.body,
+              data: notification.data,
+              sound: 'default',
+              badge: 1,
+            };
+
+            const response = await fetch('https://exp.host/--/api/v2/push/send', {
+              method: 'POST',
+              headers: {
+                'Accept': 'application/json',
+                'Accept-encoding': 'gzip, deflate',
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(expoPushMessage),
+            });
+
+            if (!response.ok) {
+              const errorData = await response.text();
+              status = 'failed';
+              errorMessage = `Expo push failed: ${response.status} ${errorData}`;
+            } else {
+              status = 'sent';
+            }
+          } catch (error) {
+            status = 'failed';
+            errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          }
+        }
+
+        notificationResults.push({
+          tokenId: token.id,
+          platform: token.platform,
+          status,
+          error: errorMessage
+        });
+
+        // Log notification result
+        await supabase.from('notification_logs').insert({
+          user_id: token.user_id,
+          type: 'chat_message',
+          title: notification.title,
+          body: notification.body,
+          status,
+          platform: token.platform,
+          error_message: errorMessage
+        });
+
+      } catch (error) {
+        console.error('❌ Error processing token:', token.id, error);
+        notificationResults.push({
+          tokenId: token.id,
+          platform: token.platform,
+          status: 'failed',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        });
+      }
+    }
+
+    console.log('✅ Test webhook processed successfully');
+    return NextResponse.json({ 
+      success: true, 
+      message: 'Test webhook processed successfully',
+      payload: testPayload,
+      results: notificationResults
+    });
   } catch (error) {
     console.error('❌ Test webhook error:', error);
     return NextResponse.json({ 
