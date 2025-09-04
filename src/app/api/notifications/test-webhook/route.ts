@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
           }
         } else if (token.platform === 'ios' || token.platform === 'android') {
           // Check if it's a mock token (development build)
-          if (token.token_type === 'mock' || token.token.startsWith('mock-')) {
+          if (token.token.startsWith('mock-')) {
             console.log('📱 Mock token detected - skipping push notification (will use local notification)');
             status = 'mock';
             errorMessage = 'Mock token - local notification will be used';
